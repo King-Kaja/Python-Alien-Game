@@ -8,6 +8,8 @@ from arcneko import Arcneko;
 from bullet import Bullet;
 from alien import Alien;
 from button import Button;
+from scoreboard import Scoreboard;
+
 
 class AlienInvasion:
     """Overall class to manage game assets and behavior."""
@@ -19,8 +21,10 @@ class AlienInvasion:
         self.screen = pygame.display.set_mode((self.dWidth, self.dHeight));
         pygame.display.set_caption("Alien Invasion");
 
-        # Create an instance to store game statistics.
+        # Create an instance to store game statistics,
+        # and create a scoreboard.
         self.stats = GameStats(self);
+        self.sb = Scoreboard(self);
 
         self.ship = Ship(self);
         self.bullets = pygame.sprite.Group();
@@ -85,6 +89,9 @@ class AlienInvasion:
         # Make the most recently drawn screen visible.
         pygame.display.flip();
 
+        # Draw the score information.
+        self.sb.show_score();
+
     def _check_keyup_events(self,event):
         if event.key == pygame.K_RIGHT:
             # stop Move the ship to the right.
@@ -134,10 +141,16 @@ class AlienInvasion:
         """Respond to bullet-alien collisions."""
         # Remove any bullets and aliens that have collided.
         collisions = pygame.sprite.groupcollide(self.bullets, self.aliens, True, True);
+        
+        if collisions:
+            self.stats.score += self.settings.alien_points;
+            self.sb.prep_score();
+
         if not self.aliens:
             # Destroy existing bullets and create new fleet.
             self.bullets.empty();
             self._create_fleet();
+        self.settings.increase_speed();
 
     def _create_fleet(self):
         """Create the fleet of aliens."""
@@ -235,9 +248,13 @@ class AlienInvasion:
         button_clicked = self.play_button.rect.collidepoint(mouse_pos)
         if button_clicked and not self.stats.game_active:
 
+            # Reset the game settings.
+            self.settings.initialize_dynamic_settings();
+
             # Reset the game statistics.
             self.stats.reset_stats();
             self.stats.game_active = True;
+            self.sb.prep_score();
 
             # Get rid of any remaining aliens and bullets.
             self.aliens.empty();
